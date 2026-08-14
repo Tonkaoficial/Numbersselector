@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#16140f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Selector de Número · Sorteo Mecánico</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Space+Mono:wght@400;700&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#16140f;
+  --bg2:#100f0b;
+  --panel:#211d15;
+  --panel-edge:#332c1e;
+  --brass:#b8863f;
+  --brass-lt:#d9ac6c;
+  --oxide:#9c4a35;
+  --ink:#f2ede0;
+  --ink-dim:#9c9280;
+  --signal:#6f8f61;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 50% -10%, #2a25191f 0%, transparent 60%),
+    var(--bg);
+  color:var(--ink);
+  font-family:'Archivo',sans-serif;
+  display:flex; justify-content:center;
+  padding:30px 16px 40px;
+}
+.stage{width:100%; max-width:460px; display:flex; flex-direction:column; align-items:center; gap:18px;}
+
+.hdr{text-align:center;}
+.eyebrow{margin:0 0 6px; font:600 12px/1 'Archivo',sans-serif; letter-spacing:.22em; color:var(--brass-lt); text-transform:uppercase;}
+.title{margin:0; font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:clamp(32px,10vw,50px); line-height:.92; letter-spacing:.01em;}
+.range-line{margin:10px 0 0; font:600 14px/1 'Archivo',sans-serif; color:var(--ink-dim); letter-spacing:.03em;}
+.range-line span{color:var(--brass-lt); font-weight:700;}
+
+.reel-wrap{
+  position:relative; width:min(80vw,300px); height:270px; margin:4px auto 0;
+  border-radius:14px; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--panel-edge);
+  box-shadow:0 18px 40px -20px #000000aa, inset 0 1px 0 #ffffff08;
+}
+.reel-track{ position:absolute; inset:0; }
+.reel-item{
+  position:absolute; left:0; right:0; top:calc(50% - 27px); height:54px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Mono',monospace; font-weight:700;
+  white-space:nowrap; padding:0 12px; will-change:transform;
+}
+.reel-item[data-k="0"]{ font-size:clamp(24px,7vw,32px); color:var(--ink); }
+.reel-item[data-k="-1"],.reel-item[data-k="1"]{ font-size:20px; color:var(--ink-dim); opacity:.6; }
+.reel-item[data-k="-2"],.reel-item[data-k="2"]{ font-size:15px; color:var(--ink-dim); opacity:.28; }
+.reel-window{
+  position:absolute; left:6px; right:6px; top:50%; height:54px; transform:translateY(-50%);
+  border-top:2px solid var(--brass); border-bottom:2px solid var(--brass);
+  background:linear-gradient(180deg,#b8863f14,#b8863f0a);
+  z-index:3; pointer-events:none; border-radius:4px;
+}
+.reel-fade{ position:absolute; left:0; right:0; height:70px; z-index:4; pointer-events:none; }
+.reel-fade-top{ top:0; background:linear-gradient(180deg,var(--panel),transparent); }
+.reel-fade-bottom{ bottom:0; background:linear-gradient(0deg,var(--bg2),transparent); }
+
+.stamp{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-9deg) scale(1);
+  border:3px solid var(--oxide); color:var(--oxide); padding:8px 18px; border-radius:8px;
+  font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:clamp(16px,5vw,22px);
+  letter-spacing:.08em; opacity:0; pointer-events:none; white-space:nowrap; z-index:5;
+}
+.stamp.show{ animation:stampIn .32s cubic-bezier(.2,1.4,.4,1) forwards; }
+@keyframes stampIn{ from{opacity:0; transform:translate(-50%,-50%) rotate(-9deg) scale(1.6);} to{opacity:1; transform:translate(-50%,-50%) rotate(-9deg) scale(1);} }
+
+.timer-row{display:flex; align-items:baseline; gap:8px; font-family:'Space Mono',monospace;}
+.timer-label{font-size:11px; letter-spacing:.18em; color:var(--ink-dim);}
+.timer-value{font-size:20px; font-weight:700; color:var(--brass-lt);}
+
+.gauge{width:100%; max-width:340px; height:6px; border-radius:3px; background:var(--panel); border:1px solid var(--panel-edge); overflow:hidden;}
+.gauge-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--oxide),var(--brass)); transition:width .12s linear;}
+
+.mode-toggle{display:flex; gap:6px; background:var(--panel); border:1px solid var(--panel-edge); border-radius:10px; padding:4px; width:100%; max-width:320px;}
+.mode-btn{flex:1; padding:9px 6px; border:none; border-radius:7px; background:transparent; color:var(--ink-dim); font:700 11px/1 'Archivo'; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;}
+.mode-btn.active{background:linear-gradient(180deg,var(--brass-lt),var(--brass)); color:#1c1509;}
+.mode-btn:disabled{opacity:.5; cursor:default;}
+.mode-btn:focus-visible{outline:2px solid var(--brass-lt);}
+
+.hidden{display:none !important;}
+
+.controls{display:flex; gap:14px; width:100%; max-width:320px;}
+.field{flex:1; display:flex; flex-direction:column; gap:6px; font:700 11px/1 'Archivo'; letter-spacing:.14em; color:var(--ink-dim);}
+.field input{
+  background:var(--panel); border:1px solid var(--panel-edge); border-radius:8px;
+  color:var(--ink); font:700 18px 'Space Mono',monospace; padding:10px 8px; text-align:center;
+}
+.field input:focus-visible{outline:2px solid var(--brass-lt); outline-offset:1px;}
+.field input:disabled{opacity:.45;}
+
+.csv-controls{width:100%; max-width:320px; display:flex; flex-direction:column; gap:8px; align-items:stretch;}
+.file-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px; border:1px dashed var(--panel-edge); border-radius:8px;
+  background:var(--panel); color:var(--ink); font:700 12px 'Archivo'; letter-spacing:.05em; cursor:pointer; text-transform:uppercase;
+}
+.file-btn:focus-within{outline:2px solid var(--brass-lt);}
+.file-hint{margin:0; font-size:11px; color:var(--ink-dim); text-align:center; letter-spacing:.02em;}
+.file-status{margin:0; font-size:12px; color:var(--brass-lt); text-align:center; font-weight:600; min-height:16px;}
+.exclude-row{display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; color:var(--ink-dim);}
+.exclude-row input{accent-color:var(--brass);}
+
+.error{min-height:16px; margin:0; font-size:12px; color:var(--oxide); font-weight:600; text-align:center;}
+
+.btn-main{
+  width:100%; max-width:340px; padding:16px; border:none; border-radius:10px;
+  background:linear-gradient(180deg,var(--brass-lt),var(--brass));
+  color:#1c1509; font:900 15px/1 'Big Shoulders Display',sans-serif; letter-spacing:.08em;
+  text-transform:uppercase; cursor:pointer;
+  box-shadow:0 10px 22px -10px #b8863f66, inset 0 1px 0 #ffffff55;
+}
+.btn-main:disabled{opacity:.6; cursor:default;}
+.btn-main:focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
+.btn-main.reset{background:linear-gradient(180deg,#8fa27f,var(--signal));}
+
+.sound-toggle{
+  position:fixed; top:12px; right:12px; width:34px; height:34px; border-radius:50%;
+  background:var(--panel); border:1px solid var(--panel-edge); color:var(--ink-dim);
+  font-size:15px; cursor:pointer; z-index:6;
+}
+.sound-toggle:focus-visible{outline:2px solid var(--brass-lt);}
+
+.winner-card{
+  width:100%; max-width:320px; padding:16px 18px; border-radius:10px;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px dashed var(--brass);
+  transform:rotate(-1.2deg); opacity:0;
+  display:none;
+}
+.winner-card.show{ display:block; animation:cardIn .3s ease forwards .18s; }
+@keyframes cardIn{ from{opacity:0; transform:rotate(-1.2deg) translateY(8px);} to{opacity:1; transform:rotate(-1.2deg) translateY(0);} }
+.wc-label{margin:0 0 6px; font:700 11px 'Archivo'; letter-spacing:.16em; color:var(--brass-lt); text-transform:uppercase;}
+.wc-name{margin:0 0 8px; font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:22px; color:var(--ink);}
+.wc-line{margin:2px 0; font:600 13px 'Space Mono',monospace; color:var(--ink-dim);}
+
+@media (prefers-reduced-motion: reduce){
+  .stamp.show{animation:none; opacity:1;}
+  .winner-card.show{animation:none; opacity:1;}
+}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <button class="sound-toggle" id="soundToggle" aria-label="Silenciar sonido">🔊</button>
+
+    <header class="hdr">
+      <p class="eyebrow">Sorteo por scroll · 2 min</p>
+      <h1 class="title">Selector<br>de número</h1>
+      <p class="range-line" id="rangeLine">Entre <span id="rangeMinLbl">1</span> y <span id="rangeMaxLbl">100</span></p>
+    </header>
+
+    <div class="reel-wrap" id="reelWrap">
+      <div class="reel-fade reel-fade-top"></div>
+      <div class="reel-track" id="reelTrack">
+        <div class="reel-item" data-k="-2"></div>
+        <div class="reel-item" data-k="-1"></div>
+        <div class="reel-item" data-k="0"></div>
+        <div class="reel-item" data-k="1"></div>
+        <div class="reel-item" data-k="2"></div>
+      </div>
+      <div class="reel-window"></div>
+      <div class="reel-fade reel-fade-bottom"></div>
+      <div class="stamp" id="stamp">SELECCIONADO</div>
+    </div>
+
+    <div class="timer-row">
+      <span class="timer-label">TIEMPO</span>
+      <span class="timer-value" id="timerValue">02:00</span>
+      <span class="timer-label" id="timerState">RESTANTE</span>
+    </div>
+    <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeRangeBtn" type="button">Rango numérico</button>
+      <button class="mode-btn" id="modeCsvBtn" type="button">Lista CSV</button>
+    </div>
+
+    <div class="controls" id="controlsRange">
+      <label class="field">
+        <span>DESDE</span>
+        <input type="number" id="minInput" value="1" min="0" max="999999" inputmode="numeric">
+      </label>
+      <label class="field">
+        <span>HASTA</span>
+        <input type="number" id="maxInput" value="100" min="0" max="999999" inputmode="numeric">
+      </label>
+    </div>
+
+    <div class="csv-controls hidden" id="controlsCsv">
+      <label class="file-btn">
+        <input type="file" id="csvInput" accept=".csv,text/csv" style="display:none">
+        📄 Elegir archivo CSV
+      </label>
+      <p class="file-hint">Columnas: nombre, apellido, telefono, direccion, numero</p>
+      <p class="file-status" id="fileStatus"></p>
+      <label class="exclude-row">
+        <input type="checkbox" id="excludeChk" checked>
+        No repetir ganadores ya sorteados
+      </label>
+    </div>
+
+    <p class="error" id="errorMsg"></p>
+
+    <button class="btn-main" id="mainBtn">Iniciar sorteo</button>
+
+    <div class="winner-card" id="winnerCard">
+      <p class="wc-label">Ganador · N.º <span id="wcNumero"></span></p>
+      <p class="wc-name" id="wcNombre"></p>
+      <p class="wc-line" id="wcTelefono"></p>
+      <p class="wc-line" id="wcDireccion"></p>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = (sel)=>document.querySelector(sel);
+  const stamp = $('#stamp');
+  const timerValue = $('#timerValue');
+  const timerState = $('#timerState');
+  const gaugeFill = $('#gaugeFill');
+  const rangeLine = $('#rangeLine');
+  const minInput = $('#minInput');
+  const maxInput = $('#maxInput');
+  const errorMsg = $('#errorMsg');
+  const mainBtn = $('#mainBtn');
+  const soundToggle = $('#soundToggle');
+  const modeRangeBtn = $('#modeRangeBtn');
+  const modeCsvBtn = $('#modeCsvBtn');
+  const controlsRange = $('#controlsRange');
+  const controlsCsv = $('#controlsCsv');
+  const csvInput = $('#csvInput');
+  const fileStatus = $('#fileStatus');
+  const excludeChk = $('#excludeChk');
+  const winnerCard = $('#winnerCard');
+  const wcNumero = $('#wcNumero');
+  const wcNombre = $('#wcNombre');
+  const wcTelefono = $('#wcTelefono');
+  const wcDireccion = $('#wcDireccion');
+  const reelSlots = Array.from(document.querySelectorAll('.reel-item')).map(el => ({el, k: parseInt(el.dataset.k,10)}));
+
+  const DURATION = 120000;   // fijo: 2 minutos
+  const ITEM_H = 54;         // alto de cada fila (px)
+  const MIN_ITEMS = 260;     // recorrido mínimo para que se sienta un buen scroll
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let mode = 'range'; // 'range' | 'csv'
+  let running = false;
+  let soundOn = true;
+  let audioCtx = null;
+
+  let participants = [];
+  let drawnIndices = new Set();
+  let currentWinner = null;
+
+  let N = 1;
+  let rangeMin = 0;
+  let currentPool = [];
+  let targetIndex = 0;
+  let totalItems = 0;
+  let startTime = 0;
+  let spinRafId = null;
+  let lastBase = null;
+
+  function valueAt(i){
+    if(mode === 'csv'){
+      const o = currentPool[i];
+      return o ? (o.p.numeroRaw || String(o.p.numero)) : '';
+    }
+    return String(rangeMin + i);
+  }
+
+  function renderReelFrame(scrollPos){
+    const base = Math.floor(scrollPos);
+    const frac = scrollPos - base;
+    if(base !== lastBase){ lastBase = base; }
+    reelSlots.forEach(slot=>{
+      const logical = base + slot.k;
+      const wrapped = ((logical % N) + N) % N;
+      slot.el.textContent = valueAt(wrapped);
+      const y = (slot.k - frac) * ITEM_H;
+      slot.el.style.transform = `translateY(${y}px)`;
+    });
+  }
+
+  // ---------- estado / rango / csv ----------
+  function getRangeN(){
+    const min = parseInt(minInput.value,10), max = parseInt(maxInput.value,10);
+    if(Number.isNaN(min) || Number.isNaN(max) || max <= min) return 0;
+    return max - min + 1;
+  }
+  function getPool(){
+    const all = participants.map((p, idx) => ({p, idx}));
+    return excludeChk.checked ? all.filter(o => !drawnIndices.has(o.idx)) : all;
+  }
+
+  function buildIdleReel(){
+    if(mode === 'range'){
+      rangeMin = parseInt(minInput.value,10) || 0;
+      N = Math.max(1, getRangeN());
+    } else {
+      currentPool = getPool();
+      N = Math.max(1, currentPool.length);
+      if(!currentPool.length) currentPool = [{p:{numeroRaw:'–'}, idx:-1}];
+    }
+    renderReelFrame(0);
+  }
+
+  function updateRangeLine(){
+    if(mode === 'range'){
+      rangeLine.innerHTML = 'Entre <span>'+ (minInput.value||'0') +'</span> y <span>'+ (maxInput.value||'0') +'</span>';
+    } else if(participants.length){
+      rangeLine.innerHTML = '<span>'+participants.length+'</span> participantes cargados';
+    } else {
+      rangeLine.textContent = 'Carga tu lista para comenzar';
+    }
+  }
+
+  function setMode(m){
+    if(running) return;
+    mode = m;
+    modeRangeBtn.classList.toggle('active', m==='range');
+    modeCsvBtn.classList.toggle('active', m==='csv');
+    controlsRange.classList.toggle('hidden', m!=='range');
+    controlsCsv.classList.toggle('hidden', m!=='csv');
+    errorMsg.textContent = '';
+    stamp.classList.remove('show');
+    winnerCard.classList.remove('show');
+    buildIdleReel();
+    updateRangeLine();
+  }
+  modeRangeBtn.addEventListener('click', ()=>setMode('range'));
+  modeCsvBtn.addEventListener('click', ()=>setMode('csv'));
+
+  minInput.addEventListener('input', ()=>{ if(!running && mode==='range'){ buildIdleReel(); updateRangeLine(); } });
+  maxInput.addEventListener('input', ()=>{ if(!running && mode==='range'){ buildIdleReel(); updateRangeLine(); } });
+
+  // ---------- CSV ----------
+  function parseCSV(text){
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+    for(let i=0;i<text.length;i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field+='"'; i++; } else { inQuotes=false; }
+        } else field += c;
+      } else {
+        if(c === '"') inQuotes = true;
+        else if(c === ','){ row.push(field); field=''; }
+        else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+        else field += c;
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(c => c && c.trim() !== ''));
+  }
+
+  function normalizeKey(s){
+    return String(s).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  }
+
+  function parseParticipants(rows){
+    if(!rows.length) return {items:[], invalid:0};
+    const headerRow = rows[0].map(normalizeKey);
+    const hasHeader = headerRow.includes('nombre');
+    const dataRows = hasHeader ? rows.slice(1) : rows;
+    let idx = {nombre:0, apellido:1, telefono:2, direccion:3, numero:4};
+    if(hasHeader){
+      idx = {
+        nombre: headerRow.indexOf('nombre'),
+        apellido: headerRow.indexOf('apellido'),
+        telefono: headerRow.findIndex(h => h.includes('telefono') || h.includes('celular')),
+        direccion: headerRow.findIndex(h => h.includes('direccion')),
+        numero: headerRow.findIndex(h => h.startsWith('numero') || h === 'no' || h === 'n')
+      };
+    }
+    const items = [];
+    let invalid = 0;
+    dataRows.forEach(r=>{
+      const numeroRaw = idx.numero >= 0 ? (r[idx.numero] || '') : '';
+      const numero = parseInt(String(numeroRaw).replace(/[^0-9]/g,''), 10);
+      const nombre = (idx.nombre >= 0 ? r[idx.nombre] : '') || '';
+      if(!nombre.trim() || Number.isNaN(numero)){ invalid++; return; }
+      items.push({
+        nombre: nombre.trim(),
+        apellido: (idx.apellido >= 0 ? (r[idx.apellido] || '') : '').trim(),
+        telefono: (idx.telefono >= 0 ? (r[idx.telefono] || '') : '').trim(),
+        direccion: (idx.direccion >= 0 ? (r[idx.direccion] || '') : '').trim(),
+        numero: numero,
+        numeroRaw: String(numeroRaw).trim()
+      });
+    });
+    return {items, invalid};
+  }
+
+  csvInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCSV(String(reader.result));
+      const {items, invalid} = parseParticipants(rows);
+      participants = items;
+      drawnIndices = new Set();
+      currentWinner = null;
+      winnerCard.classList.remove('show');
+      if(participants.length){
+        fileStatus.textContent = participants.length + ' participantes cargados' + (invalid ? ' · ' + invalid + ' filas inválidas omitidas' : '');
+      } else {
+        fileStatus.textContent = 'No se encontraron filas válidas. Revisa las columnas del archivo.';
+      }
+      errorMsg.textContent = '';
+      stamp.classList.remove('show');
+      buildIdleReel();
+      updateRangeLine();
+    };
+    reader.onerror = () => { fileStatus.textContent = 'No se pudo leer el archivo.'; };
+    reader.readAsText(file, 'UTF-8');
+  });
+
+  function validate(){
+    if(mode === 'csv'){
+      if(!participants.length) return 'Carga un archivo CSV con participantes.';
+      if(getPool().length === 0) return 'Todos los participantes ya fueron sorteados.';
+      return null;
+    }
+    const min = parseInt(minInput.value,10);
+    const max = parseInt(maxInput.value,10);
+    if(Number.isNaN(min) || Number.isNaN(max)) return 'Ingresa números válidos.';
+    if(min < 0 || max < 0) return 'Usa números positivos.';
+    if(max <= min) return 'El máximo debe ser mayor que el mínimo.';
+    if(String(max).length > 6) return 'El máximo permitido es 999999.';
+    return null;
+  }
+
+  // ---------- audio / háptica ----------
+  function ensureAudio(){
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC) audioCtx = new AC();
+    }
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function beep(freq, dur, gainPeak){
+    if(!soundOn || !audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(gainPeak, audioCtx.currentTime + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + dur + 0.02);
+  }
+  function playTick(){ beep(1500, 0.02, 0.04); }
+  function playFinalClunk(){ beep(140,0.05,0.16); setTimeout(()=>beep(90,0.22,0.18), 70); }
+  function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
+
+  // ---------- scroll / giro ----------
+  function frame(){
+    if(!running) return;
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(1, elapsed/DURATION);
+    const eased = 1 - Math.pow(1-t, 3);
+    const scrollPos = totalItems * eased;
+    const prevBase = lastBase;
+    renderReelFrame(scrollPos);
+    if(lastBase !== prevBase){ playTick(); if(t < 0.97) vibrate(4); }
+
+    const remain = Math.max(0, DURATION - elapsed);
+    const s = Math.ceil(remain/1000);
+    timerValue.textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    gaugeFill.style.width = (Math.min(100, elapsed/DURATION*100))+'%';
+
+    if(elapsed >= DURATION){
+      renderReelFrame(totalItems);
+      finishSpin();
+    } else {
+      spinRafId = requestAnimationFrame(frame);
+    }
+  }
+
+  function waitReduced(){
+    if(!running) return;
+    const elapsed = performance.now() - startTime;
+    const remain = Math.max(0, DURATION - elapsed);
+    const s = Math.ceil(remain/1000);
+    timerValue.textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    gaugeFill.style.width = (Math.min(100, elapsed/DURATION*100))+'%';
+    if(elapsed >= DURATION){
+      renderReelFrame(totalItems);
+      finishSpin();
+    } else {
+      spinRafId = requestAnimationFrame(waitReduced);
+    }
+  }
+
+  function finishSpin(){
+    running = false;
+    cancelAnimationFrame(spinRafId);
+    timerValue.textContent = '00:00';
+    timerState.textContent = 'COMPLETADO';
+    gaugeFill.style.width = '100%';
+    stamp.classList.add('show');
+    vibrate([30,40,30,40,90]);
+    playFinalClunk();
+    mainBtn.disabled = false;
+    mainBtn.textContent = 'Nuevo sorteo';
+    mainBtn.classList.add('reset');
+    modeRangeBtn.disabled = false;
+    modeCsvBtn.disabled = false;
+
+    if(mode === 'range'){
+      minInput.disabled = false;
+      maxInput.disabled = false;
+    } else {
+      csvInput.disabled = false;
+      excludeChk.disabled = false;
+      if(currentWinner){
+        if(excludeChk.checked) drawnIndices.add(currentWinner.idx);
+        const remaining = participants.length - drawnIndices.size;
+        fileStatus.textContent = participants.length + ' participantes cargados · quedan ' + (excludeChk.checked ? remaining : participants.length);
+        wcNumero.textContent = currentWinner.p.numeroRaw || String(currentWinner.p.numero);
+        wcNombre.textContent = (currentWinner.p.nombre + ' ' + currentWinner.p.apellido).trim();
+        wcTelefono.textContent = currentWinner.p.telefono ? ('Tel: ' + currentWinner.p.telefono) : '';
+        wcDireccion.textContent = currentWinner.p.direccion ? ('Dirección: ' + currentWinner.p.direccion) : '';
+        winnerCard.classList.add('show');
+      }
+    }
+  }
+
+  function startDraw(){
+    const err = validate();
+    if(err){ errorMsg.textContent = err; return; }
+    errorMsg.textContent = '';
+    ensureAudio();
+    currentWinner = null;
+
+    if(mode === 'csv'){
+      currentPool = getPool();
+      N = currentPool.length;
+      targetIndex = Math.floor(Math.random()*N);
+      currentWinner = currentPool[targetIndex];
+    } else {
+      rangeMin = parseInt(minInput.value,10);
+      const max = parseInt(maxInput.value,10);
+      N = max - rangeMin + 1;
+      targetIndex = Math.floor(Math.random()*N);
+    }
+
+    totalItems = targetIndex;
+    while(totalItems < MIN_ITEMS) totalItems += N;
+
+    lastBase = null;
+    stamp.classList.remove('show');
+    winnerCard.classList.remove('show');
+    running = true;
+    startTime = performance.now();
+    mainBtn.disabled = true;
+    mainBtn.textContent = 'Sorteando…';
+    mainBtn.classList.remove('reset');
+    modeRangeBtn.disabled = true;
+    modeCsvBtn.disabled = true;
+    minInput.disabled = true;
+    maxInput.disabled = true;
+    csvInput.disabled = true;
+    excludeChk.disabled = true;
+    timerState.textContent = 'RESTANTE';
+    renderReelFrame(0);
+
+    if(reducedMotion){
+      spinRafId = requestAnimationFrame(waitReduced);
+    } else {
+      spinRafId = requestAnimationFrame(frame);
+    }
+  }
+
+  mainBtn.addEventListener('click', ()=>{ if(!running) startDraw(); });
+
+  soundToggle.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundToggle.textContent = soundOn ? '🔊' : '🔇';
+  });
+
+  setMode('range');
+})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
