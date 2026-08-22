@@ -1,6 +1,6 @@
 {
-  "name": "Selector de Número · Sorteo Mecánico",
-  "short_name": "Selector Número",
+  "name": "TonkaPRRandomNumberSelector",
+  "short_name": "TonkaPR RNS",
   "description": "Sorteo de un número al azar (rango o lista CSV) con una animación de scroll mecánico de 2 minutos.",
   "start_url": "./index.html",
   "scope": "./",

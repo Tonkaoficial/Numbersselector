@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Selector de Número · Sorteo Mecánico</title>
+<title>TonkaPRRandomNumberSelector</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
@@ -264,6 +264,7 @@ body{
 
   let mode = 'range'; // 'range' | 'csv'
   let running = false;
+  let inputLockUntil = 0;
   let soundOn = true;
   let audioCtx = null;
 
@@ -530,9 +531,12 @@ body{
     stamp.classList.add('show');
     vibrate([30,40,30,40,90]);
     playFinalClunk();
-    mainBtn.disabled = false;
     mainBtn.textContent = 'Nuevo sorteo';
     mainBtn.classList.add('reset');
+    mainBtn.disabled = true;
+    mainBtn.blur();
+    inputLockUntil = performance.now() + 1000;
+    setTimeout(()=>{ if(performance.now() >= inputLockUntil) mainBtn.disabled = false; }, 1000);
     modeRangeBtn.disabled = false;
     modeCsvBtn.disabled = false;
 
@@ -601,7 +605,7 @@ body{
     }
   }
 
-  mainBtn.addEventListener('click', ()=>{ if(!running) startDraw(); });
+  mainBtn.addEventListener('click', ()=>{ if(!running && performance.now() >= inputLockUntil) startDraw(); });
 
   soundToggle.addEventListener('click', ()=>{
     soundOn = !soundOn;
