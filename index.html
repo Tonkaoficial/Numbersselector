@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0d1420">
+<meta name="theme-color" content="#0a1424">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,15 +16,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Space+Mono:wght@400;700&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0d1420;
-  --bg2:#080d17;
-  --panel:#141d2e;
-  --panel-edge:#22314a;
-  --brass:#3b6fe0;
-  --brass-lt:#6f9bf0;
+  --bg:#0a1424;
+  --bg2:#050b16;
+  --panel:#12233c;
+  --panel-edge:#254a78;
+  --brass:#2f6fed;
+  --brass-lt:#5b93f5;
   --oxide:#c0483d;
-  --ink:#eef2f8;
-  --ink-dim:#8b98ae;
+  --ink:#eef3fb;
+  --ink-dim:#8fa3c2;
   --signal:#2f9e6e;
 }
 *{box-sizing:border-box;}
@@ -32,7 +32,7 @@ html,body{margin:0;padding:0;}
 body{
   min-height:100vh;
   background:
-    radial-gradient(ellipse at 50% -10%, #3b6fe022 0%, transparent 60%),
+    radial-gradient(ellipse at 50% -10%, #2f6fed2e 0%, transparent 60%),
     var(--bg);
   color:var(--ink);
   font-family:'Archivo',sans-serif;
@@ -67,7 +67,7 @@ body{
 .reel-window{
   position:absolute; left:6px; right:6px; top:50%; height:54px; transform:translateY(-50%);
   border-top:2px solid var(--brass); border-bottom:2px solid var(--brass);
-  background:linear-gradient(180deg,#3b6fe01f,#3b6fe00a);
+  background:linear-gradient(180deg,#2f6fed26,#2f6fed0d);
   z-index:3; pointer-events:none; border-radius:4px;
 }
 .reel-fade{ position:absolute; left:0; right:0; height:70px; z-index:4; pointer-events:none; }
@@ -126,7 +126,7 @@ body{
   background:linear-gradient(180deg,var(--brass-lt),var(--brass));
   color:#f2f6fc; font:900 15px/1 'Big Shoulders Display',sans-serif; letter-spacing:.08em;
   text-transform:uppercase; cursor:pointer;
-  box-shadow:0 10px 22px -10px #3b6fe066, inset 0 1px 0 #ffffff33;
+  box-shadow:0 10px 22px -10px #2f6fed80, inset 0 1px 0 #ffffff33;
 }
 .btn-main:disabled{opacity:.6; cursor:default;}
 .btn-main:focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
@@ -258,6 +258,8 @@ body{
   const reelSlots = Array.from(document.querySelectorAll('.reel-item')).map(el => ({el, k: parseInt(el.dataset.k,10)}));
 
   const DURATION = 120000;   // fijo: 2 minutos
+  const TAIL_MS = 8000;      // tramo final: sigue moviéndose visiblemente, no se arrastra
+  const TAIL_ITEMS = 9;      // números que recorre durante ese tramo final
   const ITEM_H = 54;         // alto de cada fila (px)
   const MIN_ITEMS = 260;     // recorrido mínimo para que se sienta un buen scroll
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -478,13 +480,29 @@ body{
   function playFinalClunk(){ beep(140,0.05,0.16); setTimeout(()=>beep(90,0.22,0.18), 70); }
   function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
 
+  function scrollPosAt(elapsed){
+    if(totalItems <= TAIL_ITEMS){
+      const t1 = elapsed / DURATION;
+      return totalItems * (1 - Math.pow(1-t1, 2));
+    }
+    const splitMs = DURATION - TAIL_MS;
+    const mainItems = totalItems - TAIL_ITEMS;
+    if(elapsed <= splitMs){
+      const t1 = elapsed / splitMs;
+      const eased1 = 1 - Math.pow(1-t1, 3);
+      return mainItems * eased1;
+    }
+    const t2 = Math.min(1, (elapsed - splitMs) / TAIL_MS);
+    const eased2 = 1 - Math.pow(1-t2, 2);
+    return mainItems + TAIL_ITEMS * eased2;
+  }
+
   // ---------- scroll / giro ----------
   function frame(){
     if(!running) return;
     const elapsed = performance.now() - startTime;
     const t = Math.min(1, elapsed/DURATION);
-    const eased = 1 - Math.pow(1-t, 3);
-    const scrollPos = totalItems * eased;
+    const scrollPos = scrollPosAt(Math.min(elapsed, DURATION));
     const prevBase = lastBase;
     renderReelFrame(scrollPos);
     if(lastBase !== prevBase){ playTick(); if(t < 0.97) vibrate(4); }
