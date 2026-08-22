@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#16140f">
+<meta name="theme-color" content="#0d1420">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,23 +16,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Space+Mono:wght@400;700&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#16140f;
-  --bg2:#100f0b;
-  --panel:#211d15;
-  --panel-edge:#332c1e;
-  --brass:#b8863f;
-  --brass-lt:#d9ac6c;
-  --oxide:#9c4a35;
-  --ink:#f2ede0;
-  --ink-dim:#9c9280;
-  --signal:#6f8f61;
+  --bg:#0d1420;
+  --bg2:#080d17;
+  --panel:#141d2e;
+  --panel-edge:#22314a;
+  --brass:#3b6fe0;
+  --brass-lt:#6f9bf0;
+  --oxide:#c0483d;
+  --ink:#eef2f8;
+  --ink-dim:#8b98ae;
+  --signal:#2f9e6e;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
   min-height:100vh;
   background:
-    radial-gradient(ellipse at 50% -10%, #2a25191f 0%, transparent 60%),
+    radial-gradient(ellipse at 50% -10%, #3b6fe022 0%, transparent 60%),
     var(--bg);
   color:var(--ink);
   font-family:'Archivo',sans-serif;
@@ -67,7 +67,7 @@ body{
 .reel-window{
   position:absolute; left:6px; right:6px; top:50%; height:54px; transform:translateY(-50%);
   border-top:2px solid var(--brass); border-bottom:2px solid var(--brass);
-  background:linear-gradient(180deg,#b8863f14,#b8863f0a);
+  background:linear-gradient(180deg,#3b6fe01f,#3b6fe00a);
   z-index:3; pointer-events:none; border-radius:4px;
 }
 .reel-fade{ position:absolute; left:0; right:0; height:70px; z-index:4; pointer-events:none; }
@@ -92,7 +92,7 @@ body{
 
 .mode-toggle{display:flex; gap:6px; background:var(--panel); border:1px solid var(--panel-edge); border-radius:10px; padding:4px; width:100%; max-width:320px;}
 .mode-btn{flex:1; padding:9px 6px; border:none; border-radius:7px; background:transparent; color:var(--ink-dim); font:700 11px/1 'Archivo'; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;}
-.mode-btn.active{background:linear-gradient(180deg,var(--brass-lt),var(--brass)); color:#1c1509;}
+.mode-btn.active{background:linear-gradient(180deg,var(--brass-lt),var(--brass)); color:#f2f6fc;}
 .mode-btn:disabled{opacity:.5; cursor:default;}
 .mode-btn:focus-visible{outline:2px solid var(--brass-lt);}
 
@@ -124,9 +124,9 @@ body{
 .btn-main{
   width:100%; max-width:340px; padding:16px; border:none; border-radius:10px;
   background:linear-gradient(180deg,var(--brass-lt),var(--brass));
-  color:#1c1509; font:900 15px/1 'Big Shoulders Display',sans-serif; letter-spacing:.08em;
+  color:#f2f6fc; font:900 15px/1 'Big Shoulders Display',sans-serif; letter-spacing:.08em;
   text-transform:uppercase; cursor:pointer;
-  box-shadow:0 10px 22px -10px #b8863f66, inset 0 1px 0 #ffffff55;
+  box-shadow:0 10px 22px -10px #3b6fe066, inset 0 1px 0 #ffffff33;
 }
 .btn-main:disabled{opacity:.6; cursor:default;}
 .btn-main:focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
