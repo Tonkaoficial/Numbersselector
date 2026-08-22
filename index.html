@@ -163,7 +163,7 @@ body{
     <button class="sound-toggle" id="soundToggle" aria-label="Silenciar sonido">🔊</button>
 
     <header class="hdr">
-      <p class="eyebrow">Sorteo por scroll · 2 min</p>
+      <p class="eyebrow">Sorteo por scroll · 1 min</p>
       <h1 class="title">Selector<br>de número</h1>
       <p class="range-line" id="rangeLine">Entre <span id="rangeMinLbl">1</span> y <span id="rangeMaxLbl">100</span></p>
     </header>
@@ -184,7 +184,7 @@ body{
 
     <div class="timer-row">
       <span class="timer-label">TIEMPO</span>
-      <span class="timer-value" id="timerValue">02:00</span>
+      <span class="timer-value" id="timerValue">01:00</span>
       <span class="timer-label" id="timerState">RESTANTE</span>
     </div>
     <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
@@ -257,9 +257,9 @@ body{
   const wcDireccion = $('#wcDireccion');
   const reelSlots = Array.from(document.querySelectorAll('.reel-item')).map(el => ({el, k: parseInt(el.dataset.k,10)}));
 
-  const DURATION = 120000;   // fijo: 2 minutos
-  const TAIL_MS = 8000;      // tramo final: sigue moviéndose visiblemente, no se arrastra
-  const TAIL_ITEMS = 9;      // números que recorre durante ese tramo final
+  const DURATION = 60000;    // fijo: 1 minuto
+  const TAIL_MS = 4000;      // tramo final: sigue moviéndose visiblemente, no se arrastra
+  const TAIL_ITEMS = 6;      // números que recorre durante ese tramo final
   const ITEM_H = 54;         // alto de cada fila (px)
   const MIN_ITEMS = 260;     // recorrido mínimo para que se sienta un buen scroll
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
