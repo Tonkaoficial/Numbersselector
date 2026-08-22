@@ -259,7 +259,7 @@ body{
 
   const DURATION = 120000;   // fijo: 2 minutos
   const ITEM_H = 54;         // alto de cada fila (px)
-  const MIN_ITEMS = 260;     // recorrido mínimo para que se sienta un buen scroll
+  const MIN_ITEMS = 600;     // recorrido mínimo (más alto = más rápido, sigue siendo velocidad constante)
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let mode = 'range'; // 'range' | 'csv'
