@@ -163,7 +163,7 @@ body{
     <button class="sound-toggle" id="soundToggle" aria-label="Silenciar sonido">🔊</button>
 
     <header class="hdr">
-      <p class="eyebrow">Sorteo por scroll · 1 min</p>
+      <p class="eyebrow">Sorteo por scroll · 2 min</p>
       <h1 class="title">Selector<br>de número</h1>
       <p class="range-line" id="rangeLine">Entre <span id="rangeMinLbl">1</span> y <span id="rangeMaxLbl">100</span></p>
     </header>
@@ -184,7 +184,7 @@ body{
 
     <div class="timer-row">
       <span class="timer-label">TIEMPO</span>
-      <span class="timer-value" id="timerValue">01:00</span>
+      <span class="timer-value" id="timerValue">02:00</span>
       <span class="timer-label" id="timerState">RESTANTE</span>
     </div>
     <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
@@ -257,9 +257,7 @@ body{
   const wcDireccion = $('#wcDireccion');
   const reelSlots = Array.from(document.querySelectorAll('.reel-item')).map(el => ({el, k: parseInt(el.dataset.k,10)}));
 
-  const DURATION = 60000;    // fijo: 1 minuto
-  const TAIL_MS = 4000;      // tramo final: sigue moviéndose visiblemente, no se arrastra
-  const TAIL_ITEMS = 6;      // números que recorre durante ese tramo final
+  const DURATION = 120000;   // fijo: 2 minutos
   const ITEM_H = 54;         // alto de cada fila (px)
   const MIN_ITEMS = 260;     // recorrido mínimo para que se sienta un buen scroll
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -481,20 +479,8 @@ body{
   function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
 
   function scrollPosAt(elapsed){
-    if(totalItems <= TAIL_ITEMS){
-      const t1 = elapsed / DURATION;
-      return totalItems * (1 - Math.pow(1-t1, 2));
-    }
-    const splitMs = DURATION - TAIL_MS;
-    const mainItems = totalItems - TAIL_ITEMS;
-    if(elapsed <= splitMs){
-      const t1 = elapsed / splitMs;
-      const eased1 = 1 - Math.pow(1-t1, 3);
-      return mainItems * eased1;
-    }
-    const t2 = Math.min(1, (elapsed - splitMs) / TAIL_MS);
-    const eased2 = 1 - Math.pow(1-t2, 2);
-    return mainItems + TAIL_ITEMS * eased2;
+    // velocidad constante todo el recorrido; se detiene de golpe al llegar al límite
+    return totalItems * Math.min(1, elapsed / DURATION);
   }
 
   // ---------- scroll / giro ----------
