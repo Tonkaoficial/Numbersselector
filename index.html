@@ -106,6 +106,8 @@ body{
 }
 .field input:focus-visible{outline:2px solid var(--brass-lt); outline-offset:1px;}
 .field input:disabled{opacity:.45;}
+.duration-field{ max-width:220px; }
+.duration-field input{ font-size:16px; }
 
 .csv-controls{width:100%; max-width:320px; display:flex; flex-direction:column; gap:8px; align-items:stretch;}
 .file-btn{
@@ -163,7 +165,7 @@ body{
     <button class="sound-toggle" id="soundToggle" aria-label="Silenciar sonido">🔊</button>
 
     <header class="hdr">
-      <p class="eyebrow">Sorteo por scroll · 2 min</p>
+      <p class="eyebrow">Sorteo por scroll</p>
       <h1 class="title">Selector<br>de número</h1>
       <p class="range-line" id="rangeLine">Entre <span id="rangeMinLbl">1</span> y <span id="rangeMaxLbl">100</span></p>
     </header>
@@ -188,6 +190,11 @@ body{
       <span class="timer-label" id="timerState">RESTANTE</span>
     </div>
     <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
+
+    <label class="field duration-field">
+      <span>DURACIÓN DEL SORTEO (segundos)</span>
+      <input type="number" id="durationInput" value="120" min="5" max="600" inputmode="numeric">
+    </label>
 
     <div class="mode-toggle">
       <button class="mode-btn active" id="modeRangeBtn" type="button">Rango numérico</button>
@@ -255,13 +262,17 @@ body{
   const wcNombre = $('#wcNombre');
   const wcTelefono = $('#wcTelefono');
   const wcDireccion = $('#wcDireccion');
+  const durationInput = $('#durationInput');
   const reelSlots = Array.from(document.querySelectorAll('.reel-item')).map(el => ({el, k: parseInt(el.dataset.k,10)}));
 
-  const DURATION = 120000;   // fijo: 2 minutos
+  const DURATION_DEFAULT_S = 120;
+  const DURATION_MIN_S = 5;
+  const DURATION_MAX_S = 600;
   const ITEM_H = 54;         // alto de cada fila (px)
-  const MIN_ITEMS = 600;     // recorrido mínimo (más alto = más rápido, sigue siendo velocidad constante)
+  const ITEMS_PER_SEC = 5;   // velocidad constante objetivo, sin importar la duración elegida
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  let DURATION = DURATION_DEFAULT_S * 1000;
   let mode = 'range'; // 'range' | 'csv'
   let running = false;
   let inputLockUntil = 0;
@@ -273,7 +284,7 @@ body{
   let currentWinner = null;
 
   let N = 1;
-  let rangeMin = 0;
+  let valuesArr = ['–'];
   let currentPool = [];
   let targetIndex = 0;
   let totalItems = 0;
@@ -281,12 +292,12 @@ body{
   let spinRafId = null;
   let lastBase = null;
 
-  function valueAt(i){
-    if(mode === 'csv'){
-      const o = currentPool[i];
-      return o ? (o.p.numeroRaw || String(o.p.numero)) : '';
+  function shuffleArray(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
     }
-    return String(rangeMin + i);
+    return arr;
   }
 
   function renderReelFrame(scrollPos){
@@ -296,7 +307,7 @@ body{
     reelSlots.forEach(slot=>{
       const logical = base + slot.k;
       const wrapped = ((logical % N) + N) % N;
-      slot.el.textContent = valueAt(wrapped);
+      slot.el.textContent = valuesArr[wrapped];
       const y = (slot.k - frac) * ITEM_H;
       slot.el.style.transform = `translateY(${y}px)`;
     });
@@ -315,15 +326,51 @@ body{
 
   function buildIdleReel(){
     if(mode === 'range'){
-      rangeMin = parseInt(minInput.value,10) || 0;
-      N = Math.max(1, getRangeN());
+      const min = parseInt(minInput.value,10) || 0;
+      const n = getRangeN();
+      if(n <= 0){
+        valuesArr = ['–']; N = 1;
+      } else if(n <= 2000){
+        valuesArr = shuffleArray(Array.from({length:n}, (_,i)=> String(min+i)));
+        N = n;
+      } else {
+        // muestra decorativa para no bloquear al escribir; el sorteo real baraja todo el rango
+        valuesArr = Array.from({length:200}, ()=> String(min + Math.floor(Math.random()*n)));
+        N = valuesArr.length;
+      }
     } else {
-      currentPool = getPool();
-      N = Math.max(1, currentPool.length);
-      if(!currentPool.length) currentPool = [{p:{numeroRaw:'–'}, idx:-1}];
+      const pool = getPool();
+      if(!pool.length){
+        currentPool = [{p:{numeroRaw:'–'}, idx:-1}];
+        valuesArr = ['–']; N = 1;
+      } else {
+        currentPool = shuffleArray(pool.slice());
+        valuesArr = currentPool.map(o => o.p.numeroRaw || String(o.p.numero));
+        N = currentPool.length;
+      }
     }
     renderReelFrame(0);
   }
+
+  function formatDuration(ms){
+    const s = Math.round(ms/1000);
+    return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }
+  function getDurationSeconds(){
+    let s = parseInt(durationInput.value,10);
+    if(Number.isNaN(s)) s = DURATION_DEFAULT_S;
+    return Math.min(DURATION_MAX_S, Math.max(DURATION_MIN_S, s));
+  }
+  function updateDurationPreview(){
+    if(!running) timerValue.textContent = formatDuration(getDurationSeconds()*1000);
+  }
+  function validateDuration(){
+    const s = parseInt(durationInput.value,10);
+    if(Number.isNaN(s)) return 'Ingresa la duración en segundos.';
+    if(s < DURATION_MIN_S || s > DURATION_MAX_S) return `La duración debe estar entre ${DURATION_MIN_S} y ${DURATION_MAX_S} segundos.`;
+    return null;
+  }
+  durationInput.addEventListener('input', ()=>{ if(!running) updateDurationPreview(); });
 
   function updateRangeLine(){
     if(mode === 'range'){
@@ -347,6 +394,7 @@ body{
     winnerCard.classList.remove('show');
     buildIdleReel();
     updateRangeLine();
+    updateDurationPreview();
   }
   modeRangeBtn.addEventListener('click', ()=>setMode('range'));
   modeCsvBtn.addEventListener('click', ()=>setMode('csv'));
@@ -440,6 +488,8 @@ body{
   });
 
   function validate(){
+    const durErr = validateDuration();
+    if(durErr) return durErr;
     if(mode === 'csv'){
       if(!participants.length) return 'Carga un archivo CSV con participantes.';
       if(getPool().length === 0) return 'Todos los participantes ya fueron sorteados.';
@@ -539,6 +589,7 @@ body{
     setTimeout(()=>{ if(performance.now() >= inputLockUntil) mainBtn.disabled = false; }, 1000);
     modeRangeBtn.disabled = false;
     modeCsvBtn.disabled = false;
+    durationInput.disabled = false;
 
     if(mode === 'range'){
       minInput.disabled = false;
@@ -565,21 +616,25 @@ body{
     errorMsg.textContent = '';
     ensureAudio();
     currentWinner = null;
+    DURATION = getDurationSeconds() * 1000;
 
     if(mode === 'csv'){
-      currentPool = getPool();
+      currentPool = shuffleArray(getPool());
       N = currentPool.length;
+      valuesArr = currentPool.map(o => o.p.numeroRaw || String(o.p.numero));
       targetIndex = Math.floor(Math.random()*N);
       currentWinner = currentPool[targetIndex];
     } else {
-      rangeMin = parseInt(minInput.value,10);
+      const min = parseInt(minInput.value,10);
       const max = parseInt(maxInput.value,10);
-      N = max - rangeMin + 1;
+      N = max - min + 1;
+      valuesArr = shuffleArray(Array.from({length:N}, (_,i)=> String(min+i)));
       targetIndex = Math.floor(Math.random()*N);
     }
 
+    const minItems = Math.max(20, Math.round(ITEMS_PER_SEC * DURATION/1000));
     totalItems = targetIndex;
-    while(totalItems < MIN_ITEMS) totalItems += N;
+    while(totalItems < minItems) totalItems += N;
 
     lastBase = null;
     stamp.classList.remove('show');
@@ -595,6 +650,7 @@ body{
     maxInput.disabled = true;
     csvInput.disabled = true;
     excludeChk.disabled = true;
+    durationInput.disabled = true;
     timerState.textContent = 'RESTANTE';
     renderReelFrame(0);
 
