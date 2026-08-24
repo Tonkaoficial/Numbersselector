@@ -141,6 +141,20 @@ body{
 }
 .sound-toggle:focus-visible{outline:2px solid var(--brass-lt);}
 
+.result-card{
+  width:100%; max-width:320px; padding:18px; border-radius:14px; text-align:center;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:2px solid var(--brass);
+  box-shadow:0 14px 30px -16px #000000cc, 0 0 0 4px #2f6fed22;
+  opacity:0; display:none;
+}
+.result-card.show{ display:block; animation:resultIn .38s cubic-bezier(.2,1.4,.4,1) forwards; }
+@keyframes resultIn{ from{opacity:0; transform:scale(.82);} to{opacity:1; transform:scale(1);} }
+.result-label{ margin:0 0 4px; font:700 11px 'Archivo'; letter-spacing:.18em; color:var(--brass-lt); text-transform:uppercase; }
+.result-number{ margin:0; font-family:'Space Mono',monospace; font-weight:700; font-size:clamp(34px,11vw,52px); color:var(--ink); letter-spacing:.02em; }
+
+.confetti-canvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:50; }
+
 .winner-card{
   width:100%; max-width:320px; padding:16px 18px; border-radius:10px;
   background:linear-gradient(180deg,var(--panel),var(--bg2));
@@ -229,6 +243,11 @@ body{
 
     <button class="btn-main" id="mainBtn">Iniciar sorteo</button>
 
+    <div class="result-card" id="resultCard">
+      <p class="result-label">Número ganador</p>
+      <p class="result-number" id="resultNumber">—</p>
+    </div>
+
     <div class="winner-card" id="winnerCard">
       <p class="wc-label">Ganador · N.º <span id="wcNumero"></span></p>
       <p class="wc-name" id="wcNombre"></p>
@@ -236,6 +255,8 @@ body{
       <p class="wc-line" id="wcDireccion"></p>
     </div>
   </div>
+
+  <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
 
 <script>
 (function(){
@@ -262,6 +283,9 @@ body{
   const wcNombre = $('#wcNombre');
   const wcTelefono = $('#wcTelefono');
   const wcDireccion = $('#wcDireccion');
+  const resultCard = $('#resultCard');
+  const resultNumber = $('#resultNumber');
+  const confettiCanvas = $('#confettiCanvas');
   const durationInput = $('#durationInput');
   const reelSlots = Array.from(document.querySelectorAll('.reel-item')).map(el => ({el, k: parseInt(el.dataset.k,10)}));
 
@@ -392,6 +416,7 @@ body{
     errorMsg.textContent = '';
     stamp.classList.remove('show');
     winnerCard.classList.remove('show');
+    resultCard.classList.remove('show');
     buildIdleReel();
     updateRangeLine();
     updateDurationPreview();
@@ -473,6 +498,7 @@ body{
       drawnIndices = new Set();
       currentWinner = null;
       winnerCard.classList.remove('show');
+      resultCard.classList.remove('show');
       if(participants.length){
         fileStatus.textContent = participants.length + ' participantes cargados' + (invalid ? ' · ' + invalid + ' filas inválidas omitidas' : '');
       } else {
@@ -529,6 +555,44 @@ body{
   function playFinalClunk(){ beep(140,0.05,0.16); setTimeout(()=>beep(90,0.22,0.18), 70); }
   function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
 
+  function launchConfetti(){
+    if(reducedMotion) return;
+    const ctx = confettiCanvas.getContext('2d');
+    const W = confettiCanvas.width = window.innerWidth;
+    const H = confettiCanvas.height = window.innerHeight;
+    const colors = ['#5b93f5','#2f6fed','#eef3fb','#f5c451','#2f9e6e'];
+    const particles = Array.from({length:140}, () => ({
+      x: Math.random()*W,
+      y: -20 - Math.random()*H*0.4,
+      w: 6 + Math.random()*6,
+      h: 8 + Math.random()*10,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      vy: 2.5 + Math.random()*3,
+      vx: -1.8 + Math.random()*3.6,
+      rot: Math.random()*360,
+      vr: -9 + Math.random()*18
+    }));
+    const start = performance.now();
+    const RUN_MS = 2600;
+    function tick(now){
+      const t = now - start;
+      ctx.clearRect(0,0,W,H);
+      const alpha = Math.max(0, 1 - t/RUN_MS);
+      particles.forEach(p=>{
+        p.x += p.vx; p.y += p.vy; p.vy += 0.03; p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot*Math.PI/180);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+      });
+      if(t < RUN_MS){ requestAnimationFrame(tick); } else { ctx.clearRect(0,0,W,H); }
+    }
+    requestAnimationFrame(tick);
+  }
+
   function scrollPosAt(elapsed){
     // velocidad constante todo el recorrido; se detiene de golpe al llegar al límite
     return totalItems * Math.min(1, elapsed / DURATION);
@@ -581,6 +645,14 @@ body{
     stamp.classList.add('show');
     vibrate([30,40,30,40,90]);
     playFinalClunk();
+    launchConfetti();
+
+    const winningValue = mode === 'csv'
+      ? (currentWinner ? (currentWinner.p.numeroRaw || String(currentWinner.p.numero)) : valuesArr[targetIndex])
+      : valuesArr[targetIndex];
+    resultNumber.textContent = winningValue;
+    resultCard.classList.add('show');
+
     mainBtn.textContent = 'Nuevo sorteo';
     mainBtn.classList.add('reset');
     mainBtn.disabled = true;
@@ -639,6 +711,7 @@ body{
     lastBase = null;
     stamp.classList.remove('show');
     winnerCard.classList.remove('show');
+    resultCard.classList.remove('show');
     running = true;
     startTime = performance.now();
     mainBtn.disabled = true;
