@@ -168,6 +168,10 @@ body{
 .wc-name{margin:0 0 8px; font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:22px; color:var(--ink);}
 .wc-line{margin:2px 0; font:600 13px 'Space Mono',monospace; color:var(--ink-dim);}
 
+.privacy-link{margin:8px 0 0; text-align:center; font-size:12px;}
+.privacy-link a{color:var(--ink-dim); text-decoration:underline;}
+.privacy-link a:focus-visible{outline:2px solid var(--brass-lt);}
+
 @media (prefers-reduced-motion: reduce){
   .stamp.show{animation:none; opacity:1;}
   .winner-card.show{animation:none; opacity:1;}
@@ -254,6 +258,8 @@ body{
       <p class="wc-line" id="wcTelefono"></p>
       <p class="wc-line" id="wcDireccion"></p>
     </div>
+
+    <p class="privacy-link"><a href="./privacy.html">Política de privacidad</a></p>
   </div>
 
   <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
